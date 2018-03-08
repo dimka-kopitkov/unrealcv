@@ -8,6 +8,28 @@ public:
 	{}
 	void RegisterCommands();
 
+	/** ---------------------------------------------------------- */
+
+private:
+        bool IsInFrustum( AActor* Actor);
+
+public:
+	/** Check if object was rendered */
+	FExecStatus IsObjectRendered(const TArray<FString>& Args);
+
+	/** Get object visibility status */
+	FExecStatus IsObjectVisible(const TArray<FString>& Args);
+
+	/** Get object bounds */
+	FExecStatus GetObjectBounds(const TArray<FString>& Args);
+
+
+
+
+	/** ---------------------------------------------------------- */
+
+
+
 	/** Get a list of all objects in the scene */
 	FExecStatus GetObjects(const TArray<FString>& Args);
 	/** Get the annotation color of an object (Notice: not the appearance color) */

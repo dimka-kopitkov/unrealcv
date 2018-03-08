@@ -18,6 +18,22 @@ void FObjectCommandHandler::RegisterCommands()
 	// Cmd = FDispatcherDelegate::CreateRaw(this, &FObjectCommandHandler::CurrentObjectHandler); // Redirect to current
 	// CommandDispatcher->BindCommand(TEXT("[str] /object/_/[str]"), Cmd, "Get current object");
 
+
+
+	Cmd = FDispatcherDelegate::CreateRaw(this, &FObjectCommandHandler::GetObjectBounds);
+	Help = "Get object bounds";
+	CommandDispatcher->BindCommand(TEXT("vget /object/[str]/bounds"), Cmd, Help);
+
+	Cmd = FDispatcherDelegate::CreateRaw(this, &FObjectCommandHandler::IsObjectRendered);
+	Help = "Check if any pixel of object was rendered";
+	CommandDispatcher->BindCommand(TEXT("vget /object/[str]/is_rendered"), Cmd, Help);
+
+	Cmd = FDispatcherDelegate::CreateRaw(this, &FObjectCommandHandler::IsObjectVisible);
+	Help = "Get current visibility status";
+	CommandDispatcher->BindCommand(TEXT("vget /object/[str]/is_visible"), Cmd, Help);
+
+
+
 	Cmd = FDispatcherDelegate::CreateRaw(this, &FObjectCommandHandler::GetObjectColor);
 	Help = "Get the labeling color of an object (used in object instance mask)";
 	CommandDispatcher->BindCommand(TEXT("vget /object/[str]/color"), Cmd, Help);
@@ -58,6 +74,99 @@ void FObjectCommandHandler::RegisterCommands()
 	Help = "Hide object";
 	CommandDispatcher->BindCommand(TEXT("vset /object/[str]/hide"), Cmd, Help);
 }
+
+
+FExecStatus FObjectCommandHandler::GetObjectBounds(const TArray<FString>& Args)
+{
+	if (Args.Num() == 1)
+	{
+		FString ObjectName = Args[0];
+		AActor* Object = FObjectPainter::Get().GetObject(ObjectName);
+		if (Object == NULL)
+		{
+			return FExecStatus::Error(FString::Printf(TEXT("Can not find object %s"), *ObjectName));
+		}
+
+                FVector origin;
+                FVector boxExtent;
+                Object->GetActorBounds(false, origin, boxExtent);
+
+                return FExecStatus::OK(FString::Printf(TEXT("%.4f %.4f %.4f %.4f %.4f %.4f"), origin.X, origin.Y, origin.Z, boxExtent.X, boxExtent.Y, boxExtent.Z));
+	}
+
+	return FExecStatus::InvalidArgument;
+}
+
+FExecStatus FObjectCommandHandler::IsObjectRendered(const TArray<FString>& Args)
+{
+	if (Args.Num() == 1)
+	{
+		FString ObjectName = Args[0];
+		AActor* Object = FObjectPainter::Get().GetObject(ObjectName);
+		if (Object == NULL)
+		{
+			return FExecStatus::Error(FString::Printf(TEXT("Can not find object %s"), *ObjectName));
+		}
+
+                const float TimeSeconds = this->GetWorld()->GetTimeSeconds();
+                const float TimeUnseen = TimeSeconds - Object->GetLastRenderTime();
+                bool isObjectRendered = TimeUnseen < 0.05f;
+
+		return FExecStatus::OK(FString::Printf(TEXT("%d"), isObjectRendered));
+	}
+
+	return FExecStatus::InvalidArgument;
+}
+
+FExecStatus FObjectCommandHandler::IsObjectVisible(const TArray<FString>& Args)
+{
+	if (Args.Num() == 1)
+	{
+		FString ObjectName = Args[0];
+		AActor* Object = FObjectPainter::Get().GetObject(ObjectName);
+		if (Object == NULL)
+		{
+			return FExecStatus::Error(FString::Printf(TEXT("Can not find object %s"), *ObjectName));
+		}
+
+                bool isObjectVisible = this->IsInFrustum(Object);
+
+		return FExecStatus::OK(FString::Printf(TEXT("%d"), isObjectVisible));
+	}
+
+	return FExecStatus::InvalidArgument;
+}
+
+
+ bool FObjectCommandHandler::IsInFrustum( AActor* Actor)
+ {
+     ULocalPlayer* LocalPlayer = this->GetWorld()->GetFirstLocalPlayerFromController();
+     if (LocalPlayer != nullptr && LocalPlayer->ViewportClient != nullptr && LocalPlayer->ViewportClient->Viewport)
+     {
+         FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+             LocalPlayer->ViewportClient->Viewport,
+             this->GetWorld()->Scene,
+             LocalPlayer->ViewportClient->EngineShowFlags)
+             .SetRealtimeUpdate(true));
+ 
+         FVector ViewLocation;
+         FRotator ViewRotation;
+         FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, ViewLocation, ViewRotation, LocalPlayer->ViewportClient->Viewport);
+         if (SceneView != nullptr)
+         {
+             FVector origin;
+             FVector boxExtent;
+             Actor->GetActorBounds(false, origin, boxExtent);
+
+             return SceneView->ViewFrustum.IntersectBox(
+                         origin, boxExtent);
+         }             
+     }
+ 
+     return false;
+ }
+
+
 
 FExecStatus FObjectCommandHandler::GetObjects(const TArray<FString>& Args)
 {
