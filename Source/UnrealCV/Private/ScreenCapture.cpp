@@ -88,8 +88,18 @@ void CaptureWithCustomViewport()
 FExecStatus CaptureWithBuiltIn(const FString& Filename)
 {
 	// Method2: System screenshot function
-	const FString Dir = FPlatformProcess::BaseDir(); // TODO: Change this to screen capture folder
-	FString FullFilename = FPaths::Combine(*Dir, *Filename);
+
+        FString FilenamePath = FPaths::GetPath(*Filename);
+        FString FullFilename;
+        if (FilenamePath.IsEmpty())
+        {
+	    const FString Dir = FPlatformProcess::BaseDir(); // TODO: Change this to screen capture folder
+	    FullFilename = FPaths::Combine(*Dir, *Filename);
+        }
+        else
+        {
+            FullFilename = Filename;
+        }
 
 	FScreenshotRequest::RequestScreenshot(FullFilename, false, false); // This is an async operation
 	// It is important to pass in the FullFilename

@@ -59,6 +59,10 @@ void FCameraCommandHandler::RegisterCommands()
 	Help = "Get snapshot from camera";
 	CommandDispatcher->BindCommand("vget /camera/[uint]/screenshot", Cmd, Help);
 
+	Cmd = FDispatcherDelegate::CreateRaw(this, &FCameraCommandHandler::GetScreenshot);
+	Help = "Get snapshot from camera";
+	CommandDispatcher->BindCommand("vget /camera/[uint]/screenshot [str]", Cmd, Help);
+
 	Cmd = FDispatcherDelegate::CreateRaw(this, &FCameraCommandHandler::GetCameraLocation);
 	Help = "Get camera location [x, y, z]";
 	CommandDispatcher->BindCommand("vget /camera/[uint]/location", Cmd, Help);
